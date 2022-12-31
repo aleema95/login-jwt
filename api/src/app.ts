@@ -1,5 +1,6 @@
-import express, { Application, Request, Response} from 'express'
+import express, { Application, Request, Response, } from 'express'
 import { UserTypes } from './Types'
+const routes = require('./routes/index');
 const mongoose = require("mongoose")
 const User = require('./models/User')
 const bodyParser = require('body-parser');
@@ -7,7 +8,8 @@ const bcrypt = require('bcrypt');
 require('dotenv').config()
 
 const app: Application = express();
-
+const saltRounds: number = 10;
+ 
 mongoose
   .connect('mongodb://localhost:27017/testProject')
   .then(() => {
@@ -33,26 +35,10 @@ app.use((_req, res, next) => {
 
 const PORT = process.env.PORT || 3004
 
-app.get('/ping', (_req: Request, res: Response) => {
-  console.log('pinged!');
-  console.log('asd');
-  res.send('pong')  
-})
-
-app.get('/user', async (_req: Request, res: Response) => {
-  try {
-    const user = await User.find()
-    
-    res.send(user)
-  } catch (error) {
-    console.log(error);
-    res.send(error)
-  }
-})
+app.use('/', routes)
 
 app.post('/user', async (req: Request, res: Response) => {
   const { name, username, password }: UserTypes = req.body;
-  const saltRounds: number = 10;
 
   const hashedPassword = await bcrypt.hash(password, saltRounds)
   
@@ -78,7 +64,7 @@ app.delete('/user', async (req: Request, res: Response) => {
   const { id }: { id: string} = req.body
 
   try {
-    await User.deleteOne({ id })
+    await User.deleteOne({ _id: id })
     
     res.send('User deleted successfuly')
   } catch (error) {
