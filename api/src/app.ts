@@ -4,11 +4,10 @@ const routes = require('./routes/index');
 const mongoose = require("mongoose")
 const User = require('./models/User')
 const bodyParser = require('body-parser');
-const bcrypt = require('bcrypt');
+
 require('dotenv').config()
 
 const app: Application = express();
-const saltRounds: number = 10;
  
 mongoose
   .connect('mongodb://localhost:27017/testProject')
@@ -36,42 +35,6 @@ app.use((_req, res, next) => {
 const PORT = process.env.PORT || 3004
 
 app.use('/', routes)
-
-app.post('/user', async (req: Request, res: Response) => {
-  const { name, username, password }: UserTypes = req.body;
-
-  const hashedPassword = await bcrypt.hash(password, saltRounds)
-  
-  try {
-    const newUser = await User({
-      name,
-      username,
-      password: hashedPassword
-    });
-
-    await newUser.save();
-
-    console.log(newUser);
-    
-
-    res.send('User created successfuly');
-  } catch (error) {
-    res.send({error})
-  }
-})
-
-app.delete('/user', async (req: Request, res: Response) => {
-  const { id }: { id: string} = req.body
-
-  try {
-    await User.deleteOne({ _id: id })
-    
-    res.send('User deleted successfuly')
-  } catch (error) {
-    console.log(error);
-    res.send(error)
-  }
-})
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}!`);
