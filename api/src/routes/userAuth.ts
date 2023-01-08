@@ -1,77 +1,64 @@
-import { Request, Response, NextFunction } from 'express'
-import { IGetUserAuthInfoRequest } from '../Types'
+import { Request, Response } from 'express'
+import { usernameToken } from '../Types'
+import { AuthenticateUser, generateAccessToken, authenticateToken } from '../functions';
 const { Router } = require('express');
 const User = require('../models/User')
-const bcrypt = require('bcrypt');
 const router = Router();
 const jwt = require('jsonwebtoken')
 require('dotenv').config()
 
-const posts = [
-  {
-    username: 'asdjaqi',
-    title: "Post from asdjaqi"
-  },
-  {
-    username: 'OtherGuy',
-    title: "Post from OtherGuy"
-  }
-]
+// const posts = [
+//   {
+//     username: 'asdjaqi',
+//     title: "Post from asdjaqi"
+//   },
+//   {
+//     username: 'OtherGuy',
+//     title: "Post from OtherGuy"
+//   }
+// ]
 
-const { ACCESS_TOKEN_SECRET, REFRESH_TOKEN_SECRET } = process.env
+let refreshTokens: string[] = []
 
-const AuthenticateUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { id, password } = req.body;
-
-  try {
-    const user = await User.findOne({ _id: id })
-
-    await bcrypt.compare(password, user.password, function(err: Error, result: boolean) {
-      // result == true
-      if(err) return console.error(err);
-      if(!result) return res.status(401).send('Authentication error, please check your credentials.')
-      return next()
-    }); 
-  } catch (error) {
-    console.error(error,'catch Auth error');
-  }
-}
-
-function authenticateToken(req: IGetUserAuthInfoRequest, res: Response, next: NextFunction) {
-  const authHeader = req.headers['authorization']
-  const token = authHeader && authHeader.split(' ')[1]
-  if(token == null) return res.sendStatus(401)
-
-  jwt.verify(token, ACCESS_TOKEN_SECRET, (err: Error, user: string) => {
-    if(err) return res.sendStatus(403)
-    
-    req.username = user
-    next()
-  })
-}
+const { REFRESH_TOKEN_SECRET } = process.env
 
 router.post('/login', AuthenticateUser, async (req: Request, res: Response) => {
   const { id } = req.body 
 
   try {
-    const user = await User.findOne({ _id: id }, { password: false })
-
-    const accessToken = jwt.sign(user.username, ACCESS_TOKEN_SECRET)
+    const userInfo = await User.findOne({ _id: id }, { password: false })
     
-    res.send({user, accessToken})
+    const accessToken = generateAccessToken(userInfo._id) // probar mandando el userInfor entero
+    const refreshToken = jwt.sign({_id: userInfo._id}, REFRESH_TOKEN_SECRET)
+    refreshTokens.push(refreshToken)
+    
+    res.send({userInfo, accessToken, refreshToken})
   } catch (error) { 
     console.log(error);
     res.send(error)
   }
 })
 
-router.get('/userInfo', authenticateToken, async (req: IGetUserAuthInfoRequest, res: Response) => {
-  const { username } = req;
+router.get('/userInfo', authenticateToken, async (req: usernameToken, res: Response) => {
+  const { _id } = req;
 
-  const userPosts = posts.filter( post => post.username === username)
-  const user = await User.findOne({ username }, { password: false })
+  const userFound = await User.findOne({ _id }, { password: false })
 
-  res.send({user, userPosts})
+  res.send({userFound})
+})
+
+router.post('/token', (req: Request, res: Response) => {
+  const refreshToken = req.body.token; 
+  
+  if(refreshToken == null) return res.sendStatus(401)
+  if(!refreshTokens.includes(refreshToken)) return res.sendStatus(403)
+
+  jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, (err: Error, user: any) => {
+    if(err) return res.sendStatus(403)
+    
+    const accessToken = generateAccessToken(user._id)
+    res.send({ accessToken })
+  })
 })
 
 module.exports = router

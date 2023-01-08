@@ -9,5 +9,9 @@ export interface UserTypes {
 }
 
 export interface IGetUserAuthInfoRequest extends Request {
-  username: string
+  _id: string,
+}
+
+export interface usernameToken extends Request {
+  _id: string
 }
