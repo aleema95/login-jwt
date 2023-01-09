@@ -23,10 +23,10 @@ let refreshTokens: string[] = []
 const { REFRESH_TOKEN_SECRET } = process.env
 
 router.post('/login', AuthenticateUser, async (req: Request, res: Response) => {
-  const { id } = req.body 
+  const { username } = req.body 
 
   try {
-    const userInfo = await User.findOne({ _id: id }, { password: false })
+    const userInfo = await User.findOne({ username }, { password: false })
     
     const accessToken = generateAccessToken(userInfo._id) // probar mandando el userInfor entero
     const refreshToken = jwt.sign({_id: userInfo._id}, REFRESH_TOKEN_SECRET)

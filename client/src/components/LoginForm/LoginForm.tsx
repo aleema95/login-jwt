@@ -1,9 +1,15 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from "react"
 import { LoginFields } from '../../Types'
+import { increment, decrement } from "../../redux/counterSlice/counterSlice"
+import { useAppSelector, useAppDispatch } from "../../redux/hooks"
 import axios from 'axios'
 
 export default function LoginForm() {
-  const [fields, setFields] = useState<LoginFields>({ id: '63aeebdc2d2325571dd4aeae', username: 'asd', password: '987654321' })
+  const [fields, setFields] = useState<LoginFields>({ username: 'OtherGuyt', password: '147369' })
+  const [userData, setUserData] = useState<any>({userInfo: {username: 'Not logged'}})
+
+  const dispatch = useAppDispatch()
+  const count = useAppSelector((state) => state.counter.value)
   
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -14,13 +20,39 @@ export default function LoginForm() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (fields.username && fields.password) {
-      const data = await axios.post('http://localhost:3005/auth/login',  fields );
+    try {
+      if (fields.username && fields.password) {
+        const data = await axios.post('http://localhost:3005/auth/login',  fields );
+        setUserData(data.data)
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error loggin in please try again')
     }
   }
 
+  useEffect(() => {
+    console.log(userData);
+  }, [userData])
+
   return (
     <div>
+      <h1>{userData.userInfo.username}</h1>
+      <div>
+        <button
+          aria-label="Decrement value"
+          onClick={() => dispatch(decrement())}
+        >
+          Decrement
+        </button>
+        <span>{count}</span>
+        <button
+          aria-label="Increment value"
+          onClick={() => dispatch(increment())}
+        >
+          Increment
+        </button>
+      </div>
       <form onSubmit={onSubmit}>
         <div>
           <label htmlFor="">Username </label>

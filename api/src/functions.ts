@@ -27,11 +27,12 @@ export function authenticateToken(req: IGetUserAuthInfoRequest, res: Response, n
 }
 
 export const AuthenticateUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { id, password } = req.body;
+  const { username, password } = req.body;
 
   try {
-    const user = await User.findOne({ _id: id })
-
+    const user = await User.findOne({ username })
+    if(user == null) return res.sendStatus(404);
+    
     await bcrypt.compare(password, user.password, function(err: Error, result: boolean) {
       // result == true
       if(err) return console.error(err);
